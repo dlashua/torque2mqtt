@@ -1,0 +1,10 @@
+server:
+  ip: 0.0.0.0
+  port: 5000
+
+mqtt:
+  host: 192.168.0.100
+  port: 1883
+  username: username
+  password: password
+  prefix: torque
