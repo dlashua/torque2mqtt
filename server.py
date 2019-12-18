@@ -223,6 +223,8 @@ def mqttc_create():
     mqttc_time = time.time()
 
 
+mqttc_create()
+
 argparser = argparse.ArgumentParser()
 argparser.add_argument(
     "-c",
