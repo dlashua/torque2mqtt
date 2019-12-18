@@ -1,2 +1,4 @@
 env
 config
+.vscode
+__pycache__
