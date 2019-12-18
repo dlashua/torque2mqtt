@@ -223,8 +223,6 @@ def mqttc_create():
     mqttc_time = time.time()
 
 
-mqttc_create()
-
 argparser = argparse.ArgumentParser()
 argparser.add_argument(
     "-c",
@@ -240,6 +238,9 @@ if not configdir.endswith("/"):
 
 with open(configdir + "config.yaml") as file:
     config = yaml.load(file, Loader=yaml.FullLoader)
+
+mqttc_create()
+
 
 if __name__ == "__main__":
     host = config.get("server", {}).get("ip", "0.0.0.0")
