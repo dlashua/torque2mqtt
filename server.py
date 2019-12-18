@@ -1,25 +1,11 @@
-from flask import Flask, request
-import pprint
+from aiohttp import web
+
 import yaml
 import paho.mqtt.client as mqtt
 import json
 import argparse
+import time
 
-argparser = argparse.ArgumentParser()
-argparser.add_argument('-c', '--config', required=True, help="Directory holding config.yaml and application storage")
-args = argparser.parse_args()
-
-configdir = args.config
-if not configdir.endswith('/'):
-    configdir = configdir + '/'
-
-# Load Config
-with open(configdir + 'config.yaml') as file:
-    # The FullLoader parameter handles the conversion from YAML
-    # scalar values to Python the dictionary format
-    config = yaml.load(file, Loader=yaml.FullLoader)
-
-app = Flask(__name__)
 
 assumedUnits = {
     '04': '%',
@@ -62,18 +48,14 @@ assumedFullName = {
 
 data = {}
 
-
-@app.route('/')
-def process_torque():
-    session = parse_fields()
+async def process_torque(request):
+    session = parse_fields(request.query)
     publish_data(session)
-    return 'OK!'
+    return web.Response(text='OK!')
 
 
-def parse_fields():
-    global data
-
-    session = request.args.get('session')
+def parse_fields(qdata):
+    session = qdata.get('session')
     if session is None:
         raise Exception('No Session')
 
@@ -89,7 +71,7 @@ def parse_fields():
             "time": 0,
         }
 
-    for key, value in request.args.items():
+    for key, value in qdata.items():
         if key.startswith('userUnit'):
             item = key[8:]
             data[session]["unit"][item] = value
@@ -213,56 +195,60 @@ def publish_data(session):
     mqttc.publish(get_topic_prefix(session), json.dumps(session_data))
 
 
-def dump():
-    global data
-    for session, session_data in data.items():
-        print("{} ####################".format(session))
-        profile = get_profile(session)
-        for key, value in profile.items():
-            print("{}: {}".format(key, value))
-            topic = get_topic_prefix(session) + '/profile/' + key
-            mqttc.publish(topic, value)
-        print("--------------------")
-        for key, value in data[session]['value'].items():
-            row_data = get_field(session, key)
-            print("{} ({}): {} {}".format(
-                row_data['name'],
-                row_data['short_name'],
-                row_data['value'],
-                row_data['unit']
-            ))
-            topic = get_topic_prefix(session) + '/' + row_data['short_name']
-            mqttc.publish(topic, json.dumps(row_data))
-        print("--------------------")
-
+mqttc = None
+mqttc_time = time.time()
 
 def mqtt_on_connect(client, userdata, flags, rc):
-    if rc == 0:
-        print('MQTT Connected')
-    else:
+    if rc != 0:
         print('MQTT Connection Issue')
-
+        exit()
 
 def mqtt_on_disconnect(client, userdata, rc):
     print('MQTT Disconnected')
+    if time.time() > mqttc_time + 10:
+        mqttc_create()
+    else:
+        exit()
 
 
-mqttc = mqtt.Client(client_id="torque", clean_session=True)
-mqttc.username_pw_set(
-    username=config['mqtt'].get('username'),
-    password=config['mqtt'].get('password')
-)
-mqttc.connect(
-    config['mqtt']['host'],
-    config['mqtt'].get('port', 1883),
-    keepalive=60
-)
-mqttc.on_connect = mqtt_on_connect
-mqttc.mqtt_on_disconnect = mqtt_on_disconnect
-mqttc.loop_start()
+def mqttc_create():
+    global mqttc
+    global mqttc_time
+    mqttc = mqtt.Client(client_id="torque", clean_session=True)
+    mqttc.username_pw_set(
+        username=config['mqtt'].get('username'),
+        password=config['mqtt'].get('password')
+    )
+    print('CALLING MQTT CONNECT')
+    mqttc.connect(
+        config['mqtt']['host'],
+        config['mqtt'].get('port', 1883),
+        keepalive=60
+    )
+    mqttc.on_connect = mqtt_on_connect
+    mqttc.mqtt_on_disconnect = mqtt_on_disconnect
+    mqttc.loop_start()
+    mqttc_time = time.time()
+
+argparser = argparse.ArgumentParser()
+argparser.add_argument('-c', '--config', required=True, help="Directory holding config.yaml and application storage")
+args = argparser.parse_args()
+
+configdir = args.config
+if not configdir.endswith('/'):
+    configdir = configdir + '/'
+
+# Load Config
+with open(configdir + 'config.yaml') as file:
+    # The FullLoader parameter handles the conversion from YAML
+    # scalar values to Python the dictionary format
+    config = yaml.load(file, Loader=yaml.FullLoader)
 
 
 if __name__ == '__main__':
     host = config.get('server', {}).get('ip', '0.0.0.0')
     port = config.get('server', {}).get('port', 5000)
-    app.run(host=host, port=port)
+
+    app=web.Application()
+    app.router.add_get('/', process_torque)
+    web.run_app(app, host=host, port=port)

@@ -1,9 +1,11 @@
-Click==7.0
-Flask==1.1.1
-itsdangerous==1.1.0
-Jinja2==2.10.3
-MarkupSafe==1.1.1
+aiohttp==3.6.2
+async-timeout==3.0.1
+attrs==19.3.0
+chardet==3.0.4
+idna==2.8
+multidict==4.7.1
 paho-mqtt==1.5.0
+pkg-resources==0.0.0
 pprint==0.1
 PyYAML==5.2
-Werkzeug==0.16.0
+yarl==1.4.2
