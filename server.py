@@ -48,13 +48,14 @@ assumedFullName = {
 
 data = {}
 
+
 async def process_torque(request):
     session = parse_fields(request.query)
     publish_data(session)
     return web.Response(text='OK!')
 
 
-def parse_fields(qdata):
+def parse_fields(qdata):  # noqa
     session = qdata.get('session')
     if session is None:
         raise Exception('No Session')
@@ -198,10 +199,12 @@ def publish_data(session):
 mqttc = None
 mqttc_time = time.time()
 
+
 def mqtt_on_connect(client, userdata, flags, rc):
     if rc != 0:
         print('MQTT Connection Issue')
         exit()
+
 
 def mqtt_on_disconnect(client, userdata, rc):
     print('MQTT Disconnected')
@@ -230,25 +233,26 @@ def mqttc_create():
     mqttc.loop_start()
     mqttc_time = time.time()
 
+
 argparser = argparse.ArgumentParser()
-argparser.add_argument('-c', '--config', required=True, help="Directory holding config.yaml and application storage")
+argparser.add_argument(
+    '-c',
+    '--config',
+    required=True,
+    help="Directory holding config.yaml and application storage")
 args = argparser.parse_args()
 
 configdir = args.config
 if not configdir.endswith('/'):
     configdir = configdir + '/'
 
-# Load Config
 with open(configdir + 'config.yaml') as file:
-    # The FullLoader parameter handles the conversion from YAML
-    # scalar values to Python the dictionary format
     config = yaml.load(file, Loader=yaml.FullLoader)
-
 
 if __name__ == '__main__':
     host = config.get('server', {}).get('ip', '0.0.0.0')
     port = config.get('server', {}).get('port', 5000)
 
-    app=web.Application()
+    app = web.Application()
     app.router.add_get('/', process_torque)
     web.run_app(app, host=host, port=port)
