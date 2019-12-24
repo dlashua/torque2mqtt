@@ -179,8 +179,8 @@ def get_field(session, key):
     short_name = slugify(short_name)
 
     if config.get("imperial") is True:
-        if units in imperalUnits:
-            conv = prettyConvertUnits(value, unit, imperalUnits[unit])
+        if unit in imperalUnits:
+            conv = prettyConvertUnits(float(value), unit, imperalUnits[unit])
             value = conv["value"]
             unit = conv["unit"]
 
