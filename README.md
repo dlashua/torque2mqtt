@@ -6,9 +6,27 @@ It’s a simple Python Service that can be used as a Torque Web Endpoint. It pub
 
 I don’t think it REQUIRES Torque Pro, however, I’ve not tested at all with Torque Lite. So if you try it with Lite, please let me know if it works.
 
-This is a first pass implementation, so unit conversion and other such "nice things" need to be handled externally (conversion code in the consumer, Home Assistant Template Sensors, AppDaemon code, whatever). By default, all Torque units are metric and, therefore, all the metrics published will be in metric units.
+This is a first pass implementation. Some units can be converted to imperial, but more work is likely needed. By default, all units are metric (from Torque). Adding `imperial: True` to your config will attempt to convert to Imperial units.
 
-This implementation has no security, authentication, verification, or conversion. Pull Requests are quite welcome, however.
+This implementation has no security, authentication, or verification.
+
+Pull Requests are VERY welcome!
+
+# config.yaml example
+```
+server:
+  ip: 0.0.0.0
+  port: 5000
+
+mqtt:
+  host: 192.168.0.100
+  port: 1883
+  username: username
+  password: password
+  prefix: torque
+
+imperial: True
+```
 
 # Running From Source Tree
 

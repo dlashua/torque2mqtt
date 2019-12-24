@@ -1,11 +1,25 @@
 from aiohttp import web
 
+import pint
+
 import yaml
 import paho.mqtt.client as mqtt
 import json
 import argparse
 import time
 
+ureg = pint.UnitRegistry()
+
+imperalUnits = {"km": "mi", "°C": "°F", "km/h": "mph"}
+
+prettyPint = {
+    "degC": "°C",
+    "degF": "°F",
+    "mile / hour": "mph",
+    "kilometer / hour": "km/h",
+    "mile": "mi",
+    "kilometer": "km",
+}
 
 assumedUnits = {
     "04": "%",
@@ -49,6 +63,34 @@ assumedFullName = {
 data = {}
 
 
+def prettyUnits(unit):
+    if unit in prettyPint:
+        return prettyPint[unit]
+
+    return unit
+
+
+def unprettyUnits(unit):
+    for pint_unit, pretty_unit in prettyPint.items():
+        if pretty_unit == unit:
+            return pint_unit
+
+    return unit
+
+
+def convertUnits(value, u_in, u_out):
+    q_in = ureg.Quantity(value, u_in)
+    q_out = q_in.to(u_out)
+    return {"value": round(q_out.magnitude, 2), "unit": str(q_out.units)}
+
+
+def prettyConvertUnits(value, u_in, u_out):
+    p_in = unprettyUnits(u_in)
+    p_out = unprettyUnits(u_out)
+    res = convertUnits(value, p_in, p_out)
+    return {"value": res["value"], "unit": prettyUnits(res["unit"])}
+
+
 async def process_torque(request):
     session = parse_fields(request.query)
     publish_data(session)
@@ -74,8 +116,6 @@ def parse_fields(qdata):  # noqa
 
     for key, value in qdata.items():
         if key.startswith("userUnit"):
-            item = key[8:]
-            data[session]["unit"][item] = value
             continue
         if key.startswith("userShortName"):
             item = key[13:]
@@ -134,11 +174,16 @@ def get_field(session, key):
     short_name = data[session]["shortName"].get(
         key, assumedShortName.get(key, key)
     )
-    unit = data[session]["defaultUnit"].get(
-        key, data[session]["unit"].get(key, assumedUnits.get(key, ""))
-    )
+    unit = data[session]["defaultUnit"].get(key, assumedUnits.get(key, ""))
     value = data[session]["value"].get(key)
     short_name = slugify(short_name)
+
+    if config.get("imperial") is True:
+        if units in imperalUnits:
+            conv = prettyConvertUnits(value, unit, imperalUnits[unit])
+            value = conv["value"]
+            unit = conv["unit"]
+
     return {
         "name": name,
         "short_name": short_name,
