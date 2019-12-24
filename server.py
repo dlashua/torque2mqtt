@@ -10,7 +10,7 @@ import time
 
 ureg = pint.UnitRegistry()
 
-imperalUnits = {"km": "mi", "°C": "°F", "km/h": "mph"}
+imperalUnits = {"km": "mi", "°C": "°F", "km/h": "mph", "m": "ft"}
 
 prettyPint = {
     "degC": "°C",
@@ -19,6 +19,8 @@ prettyPint = {
     "kilometer / hour": "km/h",
     "mile": "mi",
     "kilometer": "km",
+    "meter": "m",
+    "foot": "ft",
 }
 
 assumedUnits = {
